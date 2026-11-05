@@ -4,7 +4,9 @@ import (
 	"app/backend"
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 var errRemoteComponentExists = backend.ErrGunshotRemoteComponentExists
@@ -87,6 +89,7 @@ type reporter struct {
 	backend.NopReporter
 	callback func(Progress)
 	uploaded int64
+	offset   int64
 }
 
 func (r *reporter) ThreadStatus(s backend.ThreadStatus) {
@@ -102,9 +105,47 @@ func (r *reporter) ThreadStatus(s backend.ThreadStatus) {
 	if s.BytesTotal > 0 {
 		r.uploaded = s.BytesUploaded
 	}
-	r.callback(Progress{State: phase, Uploaded: r.uploaded})
+	r.callback(Progress{State: phase, Uploaded: r.offset + r.uploaded})
 }
 func upload(ctx context.Context, paths []string, account, quality string, cb func(Progress)) (string, error) {
 	opts := backend.UploadOptions{Api: backend.ApiOptions{Account: account, Saver: quality == "saver", UseQuota: quality == "quota"}, Threads: 1, ForceUpload: quality == "original", PairLivePhotos: len(paths) == 2, SkipIncompleteLivePhotos: true}
-	return backend.GunshotUpload(ctx, paths, opts, &reporter{callback: cb})
+	if !rawJPEGPair(paths) {
+		return backend.GunshotUpload(ctx, paths, opts, &reporter{callback: cb})
+	}
+	// RAW+JPEG are two independent photos, not a still/movie Live Photo pair.
+	// Keep one durable job and report success only after both commits succeed.
+	opts.PairLivePhotos = false
+	var primaryKey string
+	var completed int64
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if err != nil {
+			return "", err
+		}
+		key, err := backend.GunshotUpload(ctx, []string{path}, opts, &reporter{callback: cb, offset: completed})
+		if err != nil {
+			return "", err
+		}
+		if primaryKey == "" {
+			primaryKey = key
+		}
+		completed += info.Size()
+	}
+	return primaryKey, nil
+}
+
+func rawJPEGPair(paths []string) bool {
+	if len(paths) != 2 {
+		return false
+	}
+	raw, rendered := 0, 0
+	for _, path := range paths {
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".dng", ".cr2", ".cr3", ".nef", ".arw", ".orf", ".raf", ".rw2", ".pef", ".sr2":
+			raw++
+		case ".jpg", ".jpeg", ".heic", ".heif", ".png", ".tif", ".tiff", ".avif":
+			rendered++
+		}
+	}
+	return raw == 1 && rendered == 1
 }

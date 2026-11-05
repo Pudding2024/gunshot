@@ -42,10 +42,31 @@ with tempfile.TemporaryDirectory() as d:
             == Path("packages/jailed/GunshotJailed.dylib").read_bytes()
         )
         assert sorted(str(p.relative_to(r)) for p in r.rglob("*") if p.is_file()) == [
+            "Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate",
+            "Library/Frameworks/CydiaSubstrate.framework/Info.plist",
+            "Library/Frameworks/CydiaSubstrate.framework/_CodeSignature/CodeResources",
             "Library/MobileSubstrate/DynamicLibraries/GunshotJailed.dylib",
             "Library/MobileSubstrate/DynamicLibraries/GunshotJailed.plist",
             "usr/share/doc/dev.tqmane.gunshot.jailed/ThirdPartyNotices.txt",
         ]
+        substrate = r / "Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate"
+        substrate_info = plistlib.loads((substrate.parent / "Info.plist").read_bytes())
+        assert substrate_info["CFBundleIdentifier"] == "com.saurik.CydiaSubstate"
+        assert substrate_info["CFBundleVersion"] == "0.9.7113"
+        assert (
+            subprocess.check_output(
+                ["lipo", "-archs", str(substrate)], text=True
+            ).strip()
+            == "arm64"
+        )
+        substrate_links = subprocess.check_output(
+            ["otool", "-L", str(substrate)], text=True
+        )
+        assert "@rpath/CydiaSubstrate.framework/CydiaSubstrate" in substrate_links
+        for line in substrate_links.splitlines()[2:]:
+            assert line.strip().startswith(
+                ("/System/Library/Frameworks/", "/usr/lib/")
+            ), line
         deps = subprocess.check_output(
             ["dpkg-deb", "-f", str(deb), "Depends"], text=True
         ).strip()

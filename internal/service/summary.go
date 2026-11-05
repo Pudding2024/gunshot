@@ -6,6 +6,9 @@ import (
 )
 
 func diagnosticMediaType(resources []Resource) string {
+	if len(resources) == 2 && rawJPEGPair([]string{resources[0].Name, resources[1].Name}) {
+		return "raw_jpeg"
+	}
 	heic := false
 	for _, resource := range resources {
 		ext := strings.ToLower(filepath.Ext(resource.Name))

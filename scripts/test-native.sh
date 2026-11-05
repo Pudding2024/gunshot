@@ -122,6 +122,6 @@ if [[ ${1:-all} == jailed || ${1:-all} == all ]]; then
   # Bulk photo import
   clang -fobjc-arc -framework Foundation -Itests/native-shims Media/GSBatchImport.m tests/batch_import.m -o .build/batch-import-test
   .build/batch-import-test
-  clang -fobjc-arc -framework Foundation -Itests/native-shims Media/GSBatchImport.m Media/GSExporter.m tests/exporter_batch.m -o .build/exporter-batch-test
+  clang -fobjc-arc -framework Foundation -framework UniformTypeIdentifiers -Itests/native-shims Media/GSBatchImport.m Media/GSExporter.m tests/exporter_batch.m -o .build/exporter-batch-test
   .build/exporter-batch-test
 fi

@@ -7,6 +7,7 @@ case "$scheme" in rootless) args=(THEOS_PACKAGE_SCHEME=rootless);; rootful) args
 bash scripts/build-go.sh
 python3 scripts/third-party-notices.py
 if [[ "$scheme" == jailed ]]; then
+  python3 scripts/prepare-substrate.py
   make -C Jailed clean
   make -C Jailed package FINALPACKAGE=1 "${args[@]}"
   python3 scripts/export-jailed.py

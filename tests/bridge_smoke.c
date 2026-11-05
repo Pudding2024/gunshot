@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "libgotohp.h"
 int main(void) {
     assert(GunshotPing() == 1);

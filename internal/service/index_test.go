@@ -87,6 +87,46 @@ func TestNoOpQueueCommandsDoNotRewriteState(t *testing.T) {
 	}
 }
 
+func TestHistoryDoesNotExhaustQueueCapacity(t *testing.T) {
+	e := newEngine(t, nil)
+	completed := importTest(t, e, "original")
+	completed.State, completed.OriginalPolicy = "completed", 1
+	for i := 0; i < MaxJobs+916; i++ {
+		job := *completed
+		job.ID = fmt.Sprintf("%032x", i)
+		if i%2 == 0 {
+			job.State = "cancelled"
+		}
+		e.state.Jobs = append(e.state.Jobs, &job)
+	}
+	if err := e.save(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(e.root, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicate := importTest(t, reopened, "original")
+	if duplicate.State != "cancelled" {
+		t.Fatal("history no longer prevents duplicate uploads")
+	}
+	fresh := importTest(t, reopened, "saver")
+	if fresh.State != "pending" {
+		t.Fatal("history blocked a new upload beyond 10,000 records")
+	}
+	if _, err := Open(e.root, nil); err != nil {
+		t.Fatal("cannot resume a library larger than 10,000:", err)
+	}
+	for i := 0; i < MaxJobs; i++ {
+		job := *fresh
+		job.ID = fmt.Sprintf("%032x", MaxJobs*2+i)
+		reopened.state.Jobs = append(reopened.state.Jobs, &job)
+	}
+	if _, err := reopened.begin(Request{Account: "a", Quality: "original", Resources: []Resource{{"photo.jpg", 3}}}, "photos"); err == nil {
+		t.Fatal("unfinished queue capacity is no longer bounded")
+	}
+}
+
 func TestChangedOptionsAndRetryArePersisted(t *testing.T) {
 	e := newEngine(t, nil)
 	job := importTest(t, e, "original")

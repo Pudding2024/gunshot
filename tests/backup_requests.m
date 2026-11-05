@@ -220,7 +220,7 @@ NSString *GSImportFiles(NSArray *files, NSString *account, NSString *quality, NS
 - (void)handleError:(id)error;
 #endif
 // Unlike the foreground request, this takes an object in both audited IPAs.
-- (void)blueprintDidComplete:(BOOL)success mediaItem:(id)item error:(id)error;
+- (void)blueprintDidComplete:(_Bool)success mediaItem:(id)item error:(id)error;
 @end
 @implementation GMUBackgroundAssetUploadRequest
 - (double)progress {
@@ -269,7 +269,7 @@ NSString *GSImportFiles(NSArray *files, NSString *account, NSString *quality, NS
     nativePayload++;
     [self blueprintDidComplete:YES mediaItem:nil error:nil];
 }
-- (void)blueprintDidComplete:(BOOL)success mediaItem:(id)item error:(id)error {
+- (void)blueprintDidComplete:(_Bool)success mediaItem:(id)item error:(id)error {
     if (success && !error)
         successes++;
     else

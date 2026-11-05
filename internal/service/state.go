@@ -46,8 +46,8 @@ func (e *Engine) save() error {
 	return err
 }
 func validateState(s State) error {
-	if len(s.Jobs) > MaxJobs {
-		return errors.New("too many persisted jobs")
+	if unfinishedJobs(s.Jobs) > MaxJobs {
+		return errors.New("too many unfinished jobs")
 	}
 	seen := map[string]bool{}
 	states := map[string]bool{"importing": true, "pending": true, "preparing": true, "uploading": true, "committing": true, "completed": true, "failed": true, "cancelled": true}
@@ -73,4 +73,14 @@ func validateState(s State) error {
 		}
 	}
 	return nil
+}
+
+func unfinishedJobs(jobs []*Job) int {
+	count := 0
+	for _, j := range jobs {
+		if j != nil && j.State != "completed" && j.State != "cancelled" {
+			count++
+		}
+	}
+	return count
 }

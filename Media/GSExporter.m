@@ -1,23 +1,62 @@
 #import "../Shared/GSLocalization.h"
 #import "GSExporter.h"
 #import "../Shared/IPCProtocol.h"
-static NSArray<NSURL *> *GSWriteOriginalResources(PHAsset *asset, NSURL *directory,
-                                                  NSError **error) {
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+
+static PHAssetResource *GSPreferredResource(NSArray<PHAssetResource *> *resources,
+                                            NSArray<NSNumber *> *types) {
+    PHAssetResource *raw = nil;
+    for (NSNumber *type in types)
+        for (PHAssetResource *resource in resources) {
+            if (resource.type != type.integerValue)
+                continue;
+            UTType *format = [UTType typeWithIdentifier:resource.uniformTypeIdentifier];
+            if ([format conformsToType:UTTypeRAWImage]) {
+                if (!raw)
+                    raw = resource;
+            } else
+                return resource;
+        }
+    return raw; // Preserve RAW when no rendered/JPEG companion exists.
+}
+static NSArray<NSURL *> *GSWriteCurrentResources(PHAsset *asset, NSURL *directory,
+                                                 NSError **error) {
     NSArray *resources = [PHAssetResource assetResourcesForAsset:asset];
     NSMutableArray *chosen = [NSMutableArray array];
-    PHAssetResourceType type = asset.mediaType == PHAssetMediaTypeVideo ? PHAssetResourceTypeVideo
-                                                                        : PHAssetResourceTypePhoto;
-    for (PHAssetResource *r in resources)
-        if (r.type == type) {
-            [chosen addObject:r];
-            break;
-        }
-    if (asset.mediaSubtypes & PHAssetMediaSubtypePhotoLive)
-        for (PHAssetResource *r in resources)
-            if (r.type == PHAssetResourceTypePairedVideo) {
-                [chosen addObject:r];
+    PHAssetResource *primary = GSPreferredResource(
+        resources, asset.mediaType == PHAssetMediaTypeVideo
+                       ? @[ @(PHAssetResourceTypeFullSizeVideo), @(PHAssetResourceTypeVideo) ]
+                       : @[
+                             @(PHAssetResourceTypeFullSizePhoto), @(PHAssetResourceTypePhoto),
+                             @(PHAssetResourceTypeAlternatePhoto)
+                         ]);
+    if (primary)
+        [chosen addObject:primary];
+    if (primary && asset.mediaType == PHAssetMediaTypeImage &&
+        !(asset.mediaSubtypes & PHAssetMediaSubtypePhotoLive) &&
+        ![[UTType typeWithIdentifier:primary.uniformTypeIdentifier]
+            conformsToType:UTTypeRAWImage]) {
+        // Keep the current rendered image and its untouched RAW companion.
+        for (PHAssetResource *resource in resources)
+            if (resource != primary &&
+                (resource.type == PHAssetResourceTypePhoto ||
+                 resource.type == PHAssetResourceTypeAlternatePhoto) &&
+                [[UTType typeWithIdentifier:resource.uniformTypeIdentifier]
+                    conformsToType:UTTypeRAWImage]) {
+                [chosen addObject:resource];
                 break;
             }
+    }
+    if (asset.mediaSubtypes & PHAssetMediaSubtypePhotoLive) {
+        // Edited components must belong to the same rendition. Never pair an
+        // edited still with the unedited movie or silently upload the original.
+        PHAssetResource *movie =
+            GSPreferredResource(resources, primary.type == PHAssetResourceTypeFullSizePhoto
+                                               ? @[ @(PHAssetResourceTypeFullSizePairedVideo) ]
+                                               : @[ @(PHAssetResourceTypePairedVideo) ]);
+        if (movie)
+            [chosen addObject:movie];
+    }
     if (!chosen.count ||
         ((asset.mediaSubtypes & PHAssetMediaSubtypePhotoLive) && chosen.count != 2)) {
         if (error)
@@ -70,7 +109,7 @@ NSArray<NSURL *> *GSExportAsset(PHAsset *asset, NSURL *directory, NSError **erro
     __block NSError *failure = nil;
     dispatch_sync(exports, ^{
         @autoreleasepool {
-            files = GSWriteOriginalResources(asset, directory, &failure);
+            files = GSWriteCurrentResources(asset, directory, &failure);
         }
     });
     if (error)
@@ -100,6 +139,10 @@ NSString *GSImportFiles(NSArray<NSURL *> *files, NSString *account, NSString *qu
     if (!identifier)
         return nil;
     BOOL success = NO;
+    // Retain failures before each chunk's autorelease pool drains. Writing the
+    // caller's autoreleasing out parameter inside that pool leaves a dangling
+    // NSError during ARC writeback in the native backup worker (#70).
+    NSError *failure = nil;
     @try {
         for (NSUInteger i = 0; i < files.count; i++) {
             NSFileHandle *f = [NSFileHandle fileHandleForReadingAtPath:files[i].path];
@@ -109,7 +152,7 @@ NSString *GSImportFiles(NSArray<NSURL *> *files, NSString *account, NSString *qu
                 unsigned long long offset = 0;
                 while (YES) {
                     @autoreleasepool {
-                        NSData *chunk = [f readDataUpToLength:32768 error:error];
+                        NSData *chunk = [f readDataUpToLength:32768 error:&failure];
                         if (!chunk)
                             return nil;
                         if (!chunk.length)
@@ -122,7 +165,7 @@ NSString *GSImportFiles(NSArray<NSURL *> *files, NSString *account, NSString *qu
                                     @"offset" : @(offset),
                                     @"data" : [chunk base64EncodedStringWithOptions:0]
                                 },
-                                error))
+                                &failure))
                             return nil;
                         offset += chunk.length;
                     }
@@ -131,10 +174,12 @@ NSString *GSImportFiles(NSArray<NSURL *> *files, NSString *account, NSString *qu
                 [f closeAndReturnError:nil];
             }
         }
-        NSDictionary *sealed = GSRequest(@{@"op" : @"seal", @"id" : identifier}, error);
+        NSDictionary *sealed = GSRequest(@{@"op" : @"seal", @"id" : identifier}, &failure);
         success = sealed != nil;
         return sealed[@"id"];
     } @finally {
+        if (error)
+            *error = failure;
         if (!success)
             GSRequest(@{@"op" : @"cancel", @"id" : identifier}, nil);
     }

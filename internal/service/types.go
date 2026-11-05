@@ -7,7 +7,7 @@ import (
 
 const MaxMessage = 60000
 const MaxChunk = 32768
-const MaxJobs = 10000
+const MaxJobs = 10000 // Unfinished jobs only; completed/cancelled history preserves deduplication.
 
 type Resource struct {
 	Name string `json:"name"`
