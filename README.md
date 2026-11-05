@@ -133,6 +133,12 @@ See the full [Jailed Installation Guide](docs/jailed.md) for detailed walkthroug
 
 ---
 
+## 💬 Community
+
+Join our [Discord community](https://discord.gg/zJBrCaf6dz) for support, updates, and discussion.
+
+---
+
 ## ⚠️ Disclaimer
 
 This is an unofficial open-source project and is not affiliated with, authorized, or endorsed by Google LLC or Apple Inc. Provided **"as is", without warranty of any kind**. Google may change policies or backend APIs at any time, which could impact quota calculation or account standing. Always keep an independent backup of your original media. Google Photos binaries, signing certificates, and proprietary credentials are not distributed in this repository.

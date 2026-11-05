@@ -393,7 +393,7 @@
 }
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (self.settingsMode && section == self.queueSection + 1)
-        return 2;
+        return 3;
     if (section == 0)
         return 1;
     if (section == self.queueSection)

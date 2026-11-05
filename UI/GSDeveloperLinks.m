@@ -28,24 +28,28 @@ static void GSLoadDeveloperAvatar(UITableViewCell *cell, NSString *urlString) {
     cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
                                   reuseIdentifier:identifier];
     UIListContentConfiguration *content = [UIListContentConfiguration subtitleCellConfiguration];
-    content.text = row == 0 ? @"GitHub" : @"X";
-    content.secondaryText = row == 0 ? @"@tqmane" : @"@t2aman1e";
+    content.text = @[ @"GitHub", @"X", @"Discord" ][row];
+    content.secondaryText = @[ @"@tqmane", @"@t2aman1e", @"discord.gg/zJBrCaf6dz" ][row];
     content.textProperties.numberOfLines = 0;
     content.secondaryTextProperties.numberOfLines = 0;
-    content.image = [UIImage systemImageNamed:@"person.crop.circle.fill"];
+    content.image = [UIImage systemImageNamed:row == 2 ? @"bubble.left.and.bubble.right.fill"
+                                                       : @"person.crop.circle.fill"];
     content.imageProperties.reservedLayoutSize = CGSizeMake(40, 40);
     content.imageProperties.maximumSize = CGSizeMake(40, 40);
     content.imageProperties.cornerRadius = 20;
     cell.contentConfiguration = content;
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     cell.accessibilityTraits |= UIAccessibilityTraitLink;
-    GSLoadDeveloperAvatar(cell, row == 0 ? @"https://github.com/tqmane.png?size=128"
-                                         : @"https://unavatar.io/x/t2aman1e?size=128");
+    if (row < 2)
+        GSLoadDeveloperAvatar(cell, row == 0 ? @"https://github.com/tqmane.png?size=128"
+                                             : @"https://unavatar.io/x/t2aman1e?size=128");
     return cell;
 }
 
 - (void)openDeveloperProfileAtRow:(NSInteger)row {
-    NSString *url = row == 0 ? @"https://github.com/tqmane" : @"https://x.com/t2aman1e";
+    NSString *url = @[
+        @"https://github.com/tqmane", @"https://x.com/t2aman1e", @"https://discord.gg/zJBrCaf6dz"
+    ][row];
     [UIApplication.sharedApplication openURL:[NSURL URLWithString:url]
                                      options:@{}
                            completionHandler:nil];
