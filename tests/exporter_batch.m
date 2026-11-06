@@ -10,6 +10,8 @@ static NSUInteger Queued, Written;
 static BOOL IncludeUnreadable;
 static atomic_int ActiveExports, PeakExports;
 static NSArray *ExpectedResources;
+static NSArray *FixtureResources;
+static BOOL RejectAppend;
 static NSMutableArray<NSMutableData *> *Received;
 static NSData *OriginalBytes(BOOL movie) {
     NSMutableData *bytes = [NSMutableData dataWithLength:70013];
@@ -34,14 +36,18 @@ static NSData *OriginalBytes(BOOL movie) {
 @end
 @implementation PHAssetResource
 + (NSArray *)assetResourcesForAsset:(PHAsset *)asset {
+    if (FixtureResources)
+        return FixtureResources;
     PHAssetResource *photo = [PHAssetResource new];
     photo.type = PHAssetResourceTypePhoto;
+    photo.uniformTypeIdentifier = @"public.heic";
     photo.originalFilename =
         asset.localIdentifier.intValue % 2 ? @"original.HEIC" : @"original.heif";
     photo.unreadable = IncludeUnreadable && asset.localIdentifier.intValue == 30;
     if (asset.mediaSubtypes & PHAssetMediaSubtypePhotoLive) {
         PHAssetResource *video = [PHAssetResource new];
         video.type = PHAssetResourceTypePairedVideo;
+        video.uniformTypeIdentifier = @"com.apple.quicktime-movie";
         video.originalFilename = @"original.MOV";
         return @[ photo, video ];
     }
@@ -77,9 +83,12 @@ static NSData *OriginalBytes(BOOL movie) {
     assert([url.lastPathComponent isEqual:resource.originalFilename]);
     Written++;
     NSError *error = nil;
-    [OriginalBytes(resource.type == PHAssetResourceTypePairedVideo) writeToURL:url
-                                                                       options:0
-                                                                         error:&error];
+    [OriginalBytes(resource.type == PHAssetResourceTypePairedVideo ||
+                   resource.type == PHAssetResourceTypeFullSizePairedVideo ||
+                   resource.type == PHAssetResourceTypeVideo ||
+                   resource.type == PHAssetResourceTypeFullSizeVideo) writeToURL:url
+                                                                         options:0
+                                                                           error:&error];
     completion(error);
 }
 @end
@@ -107,6 +116,11 @@ NSDictionary *GSRequest(NSDictionary *request, NSError **error) {
         return @{@"id" : @"fixture-job"};
     }
     if ([op isEqual:@"append"]) {
+        if (RejectAppend) {
+            if (error)
+                *error = [NSError errorWithDomain:@"fixture-chunk-failure" code:70 userInfo:nil];
+            return nil;
+        }
         NSMutableData *bytes = Received [[request [@"index"] unsignedIntegerValue]];
         assert(bytes.length == [request[@"offset"] unsignedIntegerValue]);
         NSData *chunk = [[NSData alloc] initWithBase64EncodedString:request[@"data"] options:0];
@@ -122,8 +136,50 @@ NSDictionary *GSRequest(NSDictionary *request, NSError **error) {
         Queued++;
         return @{@"id" : @"fixture-job"};
     }
+    if ([op isEqual:@"cancel"])
+        return @{};
     assert(NO);
     return nil;
+}
+static PHAssetResource *Resource(PHAssetResourceType type, NSString *name, NSString *uti) {
+    PHAssetResource *resource = [PHAssetResource new];
+    resource.type = type;
+    resource.originalFilename = name;
+    resource.uniformTypeIdentifier = uti;
+    return resource;
+}
+static void CheckRendition(NSArray *resources, PHAssetMediaType media, BOOL live, NSArray *names) {
+    FixtureResources = resources;
+    PHAsset *asset = [PHAsset new];
+    asset.mediaType = media;
+    asset.mediaSubtypes = live ? PHAssetMediaSubtypePhotoLive : 0;
+    NSURL *directory =
+        [NSURL fileURLWithPath:[NSTemporaryDirectory()
+                                   stringByAppendingPathComponent:NSUUID.UUID.UUIDString]];
+    assert([NSFileManager.defaultManager createDirectoryAtURL:directory
+                                  withIntermediateDirectories:YES
+                                                   attributes:nil
+                                                        error:nil]);
+    NSError *error = nil;
+    NSArray *files = GSExportAsset(asset, directory, &error);
+    if (names) {
+        assert(!error && [[files valueForKey:@"lastPathComponent"] isEqual:names]);
+        if (!live && media == PHAssetMediaTypeImage) {
+            NSUInteger before = Queued;
+            assert(GSImportFiles(files, @"fixture@example.com", @"original",
+                                 [NSDate dateWithTimeIntervalSince1970:123], &error));
+            assert(Queued == before + 1 && ExpectedResources.count == names.count);
+            RejectAppend = YES;
+            assert(!GSImportFiles(files, @"fixture@example.com", @"original",
+                                  [NSDate dateWithTimeIntervalSince1970:123], &error));
+            // This read used to retain a freed NSError after the chunk pool drained.
+            assert([error.domain isEqual:@"fixture-chunk-failure"] && error.code == 70);
+            RejectAppend = NO;
+        }
+    } else
+        assert(!files && error);
+    [NSFileManager.defaultManager removeItemAtURL:directory error:nil];
+    FixtureResources = nil;
 }
 static NSDictionary *Run(void) {
     __block NSDictionary *done = nil;
@@ -183,6 +239,45 @@ int main(void) {
         assert(dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC)) ==
                0);
         assert(atomic_load(&PeakExports) == 1);
+        dispatch_group_async(group, dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            PHAssetResource *raw =
+                Resource(PHAssetResourceTypePhoto, @"original.DNG", @"com.adobe.raw-image");
+            PHAssetResource *jpeg =
+                Resource(PHAssetResourceTypeAlternatePhoto, @"original.JPG", @"public.jpeg");
+            PHAssetResource *edited =
+                Resource(PHAssetResourceTypeFullSizePhoto, @"edited.HEIC", @"public.heic");
+            PHAssetResource *movie = Resource(PHAssetResourceTypePairedVideo, @"original.MOV",
+                                              @"com.apple.quicktime-movie");
+            PHAssetResource *editedMovie = Resource(PHAssetResourceTypeFullSizePairedVideo,
+                                                    @"edited.MOV", @"com.apple.quicktime-movie");
+            CheckRendition(
+                @[ Resource(PHAssetResourceTypePhoto, @"original.HEIC", @"public.heic") ],
+                PHAssetMediaTypeImage, NO, @[ @"original.HEIC" ]);
+            CheckRendition(@[ raw, jpeg ], PHAssetMediaTypeImage, NO,
+                           @[ @"original.JPG", @"original.DNG" ]);
+            CheckRendition(@[ jpeg, raw ], PHAssetMediaTypeImage, NO,
+                           @[ @"original.JPG", @"original.DNG" ]);
+            CheckRendition(@[ raw, jpeg, edited ], PHAssetMediaTypeImage, NO,
+                           @[ @"edited.HEIC", @"original.DNG" ]);
+            raw.unreadable = YES;
+            CheckRendition(@[ raw, jpeg ], PHAssetMediaTypeImage, NO, nil);
+            raw.unreadable = NO;
+            CheckRendition(@[ raw ], PHAssetMediaTypeImage, NO, @[ @"original.DNG" ]);
+            CheckRendition(@[ jpeg, edited ], PHAssetMediaTypeImage, NO, @[ @"edited.HEIC" ]);
+            CheckRendition(@[ jpeg, movie, editedMovie, edited ], PHAssetMediaTypeImage, YES,
+                           @[ @"edited.HEIC", @"edited.MOV" ]);
+            CheckRendition(@[ jpeg, movie, edited ], PHAssetMediaTypeImage, YES, nil);
+            CheckRendition(
+                @[
+                    Resource(PHAssetResourceTypeVideo, @"original.MOV",
+                             @"com.apple.quicktime-movie"),
+                    Resource(PHAssetResourceTypeFullSizeVideo, @"edited.MOV",
+                             @"com.apple.quicktime-movie")
+                ],
+                PHAssetMediaTypeVideo, NO, @[ @"edited.MOV" ]);
+        });
+        assert(dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC)) ==
+               0);
         NSLog(@"PASS 60 HEIC/HEIF originals, Live Photo resources, exact IPC bytes/timestamp, "
               @"unreadable original isolation and bounded concurrent native exports");
     }

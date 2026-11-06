@@ -12,7 +12,11 @@ typedef NS_OPTIONS(NSUInteger, PHAssetMediaSubtype) {
 typedef NS_ENUM(NSInteger, PHAssetResourceType) {
     PHAssetResourceTypePhoto = 1,
     PHAssetResourceTypeVideo = 2,
-    PHAssetResourceTypePairedVideo = 9
+    PHAssetResourceTypeAlternatePhoto = 4,
+    PHAssetResourceTypeFullSizePhoto = 5,
+    PHAssetResourceTypeFullSizeVideo = 6,
+    PHAssetResourceTypePairedVideo = 9,
+    PHAssetResourceTypeFullSizePairedVideo = 10
 };
 @interface PHAsset : NSObject
 @property (nonatomic, copy) NSString *localIdentifier;
@@ -24,6 +28,7 @@ typedef NS_ENUM(NSInteger, PHAssetResourceType) {
 @interface PHAssetResource : NSObject
 @property (nonatomic) PHAssetResourceType type;
 @property (nonatomic, copy) NSString *originalFilename;
+@property (nonatomic, copy) NSString *uniformTypeIdentifier;
 + (NSArray<PHAssetResource *> *)assetResourcesForAsset:(PHAsset *)asset;
 @end
 @interface PHAssetResourceRequestOptions : NSObject

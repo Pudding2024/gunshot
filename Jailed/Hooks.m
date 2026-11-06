@@ -9,7 +9,7 @@
 #import "SideloadKeychain.h"
 #import "SideloadIdentity.h"
 
-// Independent Objective-C hooks: no Substrate / ElleKit dependency for IPA injection.
+// Independent Objective-C hooks; the deb also ships Substrate for injector compatibility.
 static id (*GSOriginalActivityInit)(id, SEL, NSArray *, NSArray *);
 static id GSActivityInit(id object, SEL selector, NSArray *items, NSArray *activities) {
     NSMutableArray *all = activities ? [activities mutableCopy] : [NSMutableArray array];
@@ -28,6 +28,9 @@ __attribute__((constructor)) static void GSLoadJailed(void) {
                 [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleExecutable"];
             if (![executable isEqualToString:@"GooglePhotos"])
                 return;
+            // Recheck after host frameworks / the LiveContainer guest have initialized.
+            GSInstallSideloadIdentity();
+            GSInstallSideloadKeychain();
             GSStartAccountConnection();
             [NSNotificationCenter.defaultCenter
                 addObserverForName:UIApplicationDidBecomeActiveNotification

@@ -43,7 +43,7 @@ static BOOL lastSuccess;
 @interface GMUUploadRequest : NSObject
 - (void)start;
 - (void)startFetcher;
-- (void)didCompleteWithSuccess:(BOOL)success
+- (void)didCompleteWithSuccess:(_Bool)success
             resultantMediaItem:(id)result
                 GS_ERROR_LABEL:(GS_ERROR_TYPE)error;
 @end
@@ -54,7 +54,7 @@ static BOOL lastSuccess;
 - (void)startFetcher {
     called++;
 }
-- (void)didCompleteWithSuccess:(BOOL)success
+- (void)didCompleteWithSuccess:(_Bool)success
             resultantMediaItem:(id)result
                 GS_ERROR_LABEL:(GS_ERROR_TYPE)error {
     called++;

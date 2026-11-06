@@ -24,7 +24,7 @@ func safeName(s string) bool {
 	return len(s) > 0 && len(s) < 240 && s != "." && s != ".." && filepath.Base(s) == s && !strings.ContainsAny(s, "/\\\x00\n\r")
 }
 func (e *Engine) begin(r Request, owner string) (any, error) {
-	if len(e.state.Jobs) >= MaxJobs || len(r.Resources) < 1 || len(r.Resources) > 2 {
+	if unfinishedJobs(e.state.Jobs) >= MaxJobs || len(r.Resources) < 1 || len(r.Resources) > 2 {
 		return nil, errRequest
 	}
 	if !validQuality(r.Quality) || r.Account == "" {
