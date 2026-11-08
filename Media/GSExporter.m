@@ -49,8 +49,8 @@ static NSString *GSExportFilename(PHAssetResource *resource,
     NSString *extension = originalExtension;
     UTType *format = [UTType typeWithIdentifier:resource.uniformTypeIdentifier];
     NSString *preferredExtension = format.preferredFilenameExtension;
-    if (preferredExtension.length &&
-        [preferredExtension caseInsensitiveCompare:originalExtension] != NSOrderedSame)
+    UTType *originalFormat = [UTType typeWithFilenameExtension:originalExtension];
+    if (![originalFormat.identifier isEqualToString:resource.uniformTypeIdentifier])
         extension = preferredExtension;
     if (!extension.length)
         extension = selectedName.pathExtension;

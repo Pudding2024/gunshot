@@ -173,10 +173,11 @@ static void CheckRendition(NSArray *resources, PHAssetMediaType media, BOOL live
     if (names) {
         NSArray *actualNames = [files valueForKey:@"lastPathComponent"];
         if (error || ![actualNames isEqual:names])
-            NSLog(@"FAIL exporter rendition: error=%@ actual=%@ expected=%@ types=%@ names=%@ utis=%@",
-                error, actualNames, names, [resources valueForKey:@"type"],
-                [resources valueForKey:@"originalFilename"],
-                [resources valueForKey:@"uniformTypeIdentifier"]);
+            NSLog(@"FAIL exporter rendition: error=%@ actual=%@ expected=%@ types=%@ names=%@ "
+                  @"utis=%@",
+                  error, actualNames, names, [resources valueForKey:@"type"],
+                  [resources valueForKey:@"originalFilename"],
+                  [resources valueForKey:@"uniformTypeIdentifier"]);
         assert(!error);
         assert([actualNames isEqual:names]);
         if (!live && media == PHAssetMediaTypeImage) {
