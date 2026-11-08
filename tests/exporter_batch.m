@@ -171,7 +171,14 @@ static void CheckRendition(NSArray *resources, PHAssetMediaType media, BOOL live
     NSError *error = nil;
     NSArray *files = GSExportAsset(asset, directory, &error);
     if (names) {
-        assert(!error && [[files valueForKey:@"lastPathComponent"] isEqual:names]);
+        NSArray *actualNames = [files valueForKey:@"lastPathComponent"];
+        if (error || ![actualNames isEqual:names])
+            NSLog(@"FAIL exporter rendition: error=%@ actual=%@ expected=%@ types=%@ names=%@ utis=%@",
+                error, actualNames, names, [resources valueForKey:@"type"],
+                [resources valueForKey:@"originalFilename"],
+                [resources valueForKey:@"uniformTypeIdentifier"]);
+        assert(!error);
+        assert([actualNames isEqual:names]);
         if (!live && media == PHAssetMediaTypeImage) {
             NSUInteger before = Queued;
             assert(GSImportFiles(files, @"fixture@example.com", @"original",
