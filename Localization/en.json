@@ -98,6 +98,7 @@
   "Tap Add to queue your selection.": "Tap Add to queue your selection.",
   "Upload with GoToHP": "Upload with GoToHP",
   "Original media resources are unavailable.": "Original media resources are unavailable.",
+  "Duplicate media filename.": "Duplicate media filename.",
   "GoToHP request failed. Check the account, storage and queue in this app.": "GoToHP request failed. Check the account, storage and queue in this app.",
   "GoToHP request failed. Check the daemon, account and queue.": "GoToHP request failed. Check the daemon, account and queue.",
   "Paste an EmbeddedSetup oauth_token or complete gotohp credential. Stored privately in this app, sent to Google, and hidden after saving.": "Paste an EmbeddedSetup oauth_token or complete gotohp credential. Stored privately in this app, sent to Google, and hidden after saving.",

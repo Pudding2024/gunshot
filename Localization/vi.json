@@ -98,6 +98,7 @@
   "Tap Add to queue your selection.": "Nhấn Thêm để đưa lựa chọn của bạn vào hàng đợi.",
   "Upload with GoToHP": "Tải lên bằng GoToHP",
   "Original media resources are unavailable.": "Tài nguyên phương tiện gốc không có sẵn.",
+  "Duplicate media filename.": "Tên tệp phương tiện bị trùng.",
   "GoToHP request failed. Check the account, storage and queue in this app.": "Yêu cầu GoToHP không thành công. Kiểm tra tài khoản, bộ nhớ và hàng đợi trong ứng dụng này.",
   "GoToHP request failed. Check the daemon, account and queue.": "Yêu cầu GoToHP không thành công. Kiểm tra daemon, tài khoản và hàng đợi.",
   "Paste an EmbeddedSetup oauth_token or complete gotohp credential. Stored privately in this app, sent to Google, and hidden after saving.": "Dán EmbeddedSetup oauth_token hoặc thông tin xác thực gotohp hoàn chỉnh. Được lưu trữ riêng tư trong ứng dụng này, gửi tới Google và ẩn đi sau khi lưu.",

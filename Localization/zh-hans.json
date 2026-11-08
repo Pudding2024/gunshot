@@ -98,6 +98,7 @@
   "Tap Add to queue your selection.": "点击以将选择项添加到队列",
   "Upload with GoToHP": "通过 GoToHP 上传",
   "Original media resources are unavailable.": "原始媒体资源无法访问",
+  "Duplicate media filename.": "媒体文件名重复",
   "GoToHP request failed. Check the account, storage and queue in this app.": "GoToHP 请求失败。请在此 App 中检查你的账户、存储空间和队列状态",
   "GoToHP request failed. Check the daemon, account and queue.": "GoToHP 请求失败。请检查守护进程、账户和队列状态",
   "Paste an EmbeddedSetup oauth_token or complete gotohp credential. Stored privately in this app, sent to Google, and hidden after saving.": "粘贴 EmbeddedSetup oauth_token 或者完整的 GoToHP 凭据。此凭据将被保存到本 App 并发送到 Google，完成后将被隐藏",

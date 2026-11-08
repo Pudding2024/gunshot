@@ -98,6 +98,7 @@
   "Tap Add to queue your selection.": "「追加」で選択した項目をキューに追加します。",
   "Upload with GoToHP": "GoToHP でアップロード",
   "Original media resources are unavailable.": "原本のメディアデータを取得できません。",
+  "Duplicate media filename.": "メディアファイル名が重複しています。",
   "GoToHP request failed. Check the account, storage and queue in this app.": "GoToHP の要求に失敗しました。このアプリのアカウント、空き容量、キューを確認してください。",
   "GoToHP request failed. Check the daemon, account and queue.": "GoToHP の要求に失敗しました。daemon、アカウント、キューを確認してください。",
   "Paste an EmbeddedSetup oauth_token or complete gotohp credential. Stored privately in this app, sent to Google, and hidden after saving.": "EmbeddedSetup の oauth_token または gotohp の認証情報を貼り付けてください。このアプリ内に非公開で保存し、Google に送信します。保存後は非表示です。",

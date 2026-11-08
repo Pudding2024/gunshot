@@ -148,6 +148,14 @@ static PHAssetResource *Resource(PHAssetResourceType type, NSString *name, NSStr
     resource.uniformTypeIdentifier = uti;
     return resource;
 }
+static NSString *ExpectedFilename(NSString *originalName, NSString *preferredExtension) {
+    NSString *originalExtension = originalName.pathExtension;
+    NSString *extension =
+        [preferredExtension caseInsensitiveCompare:originalExtension] == NSOrderedSame
+            ? originalExtension
+            : preferredExtension;
+    return [[originalName stringByDeletingPathExtension] stringByAppendingPathExtension:extension];
+}
 static void CheckRendition(NSArray *resources, PHAssetMediaType media, BOOL live, NSArray *names) {
     FixtureResources = resources;
     PHAsset *asset = [PHAsset new];
@@ -253,12 +261,19 @@ int main(void) {
             CheckRendition(
                 @[ Resource(PHAssetResourceTypePhoto, @"original.HEIC", @"public.heic") ],
                 PHAssetMediaTypeImage, NO, @[ @"original.HEIC" ]);
-            CheckRendition(@[ raw, jpeg ], PHAssetMediaTypeImage, NO,
-                           @[ @"original.JPG", @"original.DNG" ]);
-            CheckRendition(@[ jpeg, raw ], PHAssetMediaTypeImage, NO,
-                           @[ @"original.JPG", @"original.DNG" ]);
-            CheckRendition(@[ raw, jpeg, edited ], PHAssetMediaTypeImage, NO,
-                           @[ @"original.heic", @"original.DNG" ]);
+            NSString *rawExtension =
+                [UTType typeWithIdentifier:@"com.adobe.raw-image"].preferredFilenameExtension;
+            assert(rawExtension.length &&
+                   [rawExtension caseInsensitiveCompare:@"JPG"] != NSOrderedSame);
+            CheckRendition(
+                @[ raw, jpeg ], PHAssetMediaTypeImage, NO,
+                @[ @"original.JPG", ExpectedFilename(raw.originalFilename, rawExtension) ]);
+            CheckRendition(
+                @[ jpeg, raw ], PHAssetMediaTypeImage, NO,
+                @[ @"original.JPG", ExpectedFilename(raw.originalFilename, rawExtension) ]);
+            CheckRendition(
+                @[ raw, jpeg, edited ], PHAssetMediaTypeImage, NO,
+                @[ @"original.heic", ExpectedFilename(raw.originalFilename, rawExtension) ]);
             raw.unreadable = YES;
             CheckRendition(@[ raw, jpeg ], PHAssetMediaTypeImage, NO, nil);
             raw.unreadable = NO;
@@ -267,17 +282,13 @@ int main(void) {
             CheckRendition(@[ jpeg, movie, editedMovie, edited ], PHAssetMediaTypeImage, YES,
                            @[ @"original.heic", @"original.MOV" ]);
             CheckRendition(@[ jpeg, movie, edited ], PHAssetMediaTypeImage, YES, nil);
-            NSString *rawExtension =
-                [UTType typeWithIdentifier:@"com.adobe.raw-image"].preferredFilenameExtension;
-            assert(rawExtension.length &&
-                   [rawExtension caseInsensitiveCompare:@"JPG"] != NSOrderedSame);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypePhoto, @"IMG_0001.JPG", @"com.adobe.raw-image"),
                     Resource(PHAssetResourceTypeAlternatePhoto, @"IMG_0001.JPG", @"public.jpeg")
                 ],
                 PHAssetMediaTypeImage, NO,
-                @[ @"IMG_0001.JPG", [@"IMG_0001" stringByAppendingPathExtension:rawExtension] ]);
+                @[ @"IMG_0001.JPG", ExpectedFilename(@"IMG_0001.JPG", rawExtension) ]);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypePhoto, nil, @"public.jpeg"),
