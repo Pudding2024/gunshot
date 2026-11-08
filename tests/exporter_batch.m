@@ -80,7 +80,6 @@ static NSData *OriginalBytes(BOOL movie) {
         completion([NSError errorWithDomain:@"private-resource-error" code:99 userInfo:nil]);
         return;
     }
-    assert([url.lastPathComponent isEqual:resource.originalFilename]);
     Written++;
     NSError *error = nil;
     [OriginalBytes(resource.type == PHAssetResourceTypePairedVideo ||
@@ -258,15 +257,27 @@ int main(void) {
             CheckRendition(@[ jpeg, raw ], PHAssetMediaTypeImage, NO,
                            @[ @"original.JPG", @"original.DNG" ]);
             CheckRendition(@[ raw, jpeg, edited ], PHAssetMediaTypeImage, NO,
-                           @[ @"edited.HEIC", @"original.DNG" ]);
+                           @[ @"original.heic", @"original.DNG" ]);
             raw.unreadable = YES;
             CheckRendition(@[ raw, jpeg ], PHAssetMediaTypeImage, NO, nil);
             raw.unreadable = NO;
             CheckRendition(@[ raw ], PHAssetMediaTypeImage, NO, @[ @"original.DNG" ]);
-            CheckRendition(@[ jpeg, edited ], PHAssetMediaTypeImage, NO, @[ @"edited.HEIC" ]);
+            CheckRendition(@[ jpeg, edited ], PHAssetMediaTypeImage, NO, @[ @"original.heic" ]);
             CheckRendition(@[ jpeg, movie, editedMovie, edited ], PHAssetMediaTypeImage, YES,
-                           @[ @"edited.HEIC", @"edited.MOV" ]);
+                           @[ @"original.heic", @"original.MOV" ]);
             CheckRendition(@[ jpeg, movie, edited ], PHAssetMediaTypeImage, YES, nil);
+            CheckRendition(
+                @[
+                    Resource(PHAssetResourceTypePhoto, @"IMG_0001.JPG", @"com.adobe.raw-image"),
+                    Resource(PHAssetResourceTypeAlternatePhoto, @"IMG_0001.JPG", @"public.jpeg")
+                ],
+                PHAssetMediaTypeImage, NO, nil);
+            CheckRendition(
+                @[
+                    Resource(PHAssetResourceTypePhoto, nil, @"public.jpeg"),
+                    Resource(PHAssetResourceTypeFullSizePhoto, @"FullSizeRender.heic", @"public.heic")
+                ],
+                PHAssetMediaTypeImage, NO, @[ @"FullSizeRender.heic" ]);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypeVideo, @"original.MOV",

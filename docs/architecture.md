@@ -54,6 +54,9 @@ Gunshot は、iOS の Google フォトアプリ（Objective-C / Swift）と、Go
 - 写真の選択時や Google フォト標準バックアップのトリガー時に、`Media/GSExporter` が PhotoKit (`PHAssetResourceManager`) を通じてメディアを一時領域に書き出します。
 - **現行フルサイズの優先（Issue #69）**:
   - `PHAssetResourceTypeFullSizePhoto` / `FullSizeVideo`（ユーザーの編集、ポートレート効果、カメラのアスペクト比クロップ等を反映した現行フルサイズ）を原本リソースより優先して抽出します。追加の再エンコードは行いません。
+- **カメラ由来のファイル名**:
+  - 抽出するデータは現行フルサイズの編集済みリソースを維持しますが、アップロード用のファイル名は同じアセットの原本リソースから取得します。そのため、編集済み写真でも `FullSizeRender.heic` ではなく `IMG_0000.HEIC` のような元のカメラ由来の名前になります。内容の形式が原本と異なる場合は、実際に抽出したリソースの拡張子を使用します。
+  - `quality = original` はアップロード品質を示す設定であり、PhotoKit の `PHAssetResourceTypePhoto` を必ず選択するという意味ではありません。元のファイル名を取得できない場合は、抽出リソースのファイル名へフォールバックします。
 - **RAW+JPEG の両方抽出**:
   - RAW と JPEG/HEIC が共存するアセットでは、現行の編集済み JPEG/HEIC 画像と元の RAW の両方をエクスポートします（編集済み画像を優先する規則は JPEG/HEIC 側に適用）。RAW 単独のアセットは RAW 形式をそのまま保持します。
 - **Live Photo のペアリング（Issue #69）**:

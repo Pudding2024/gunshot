@@ -19,6 +19,42 @@ static PHAssetResource *GSPreferredResource(NSArray<PHAssetResource *> *resource
         }
     return raw; // Preserve RAW when no rendered/JPEG companion exists.
 }
+static PHAssetResource *GSOriginalResourceFor(PHAssetResource *resource,
+                                              NSArray<PHAssetResource *> *resources) {
+    NSArray<NSNumber *> *types = nil;
+    switch (resource.type) {
+    case PHAssetResourceTypeFullSizePhoto:
+        types = @[ @(PHAssetResourceTypePhoto), @(PHAssetResourceTypeAlternatePhoto) ];
+        break;
+    case PHAssetResourceTypeFullSizeVideo:
+        types = @[ @(PHAssetResourceTypeVideo) ];
+        break;
+    case PHAssetResourceTypeFullSizePairedVideo:
+        types = @[ @(PHAssetResourceTypePairedVideo) ];
+        break;
+    default:
+        return resource;
+    }
+    return GSPreferredResource(resources, types) ?: resource;
+}
+static NSString *GSExportFilename(PHAssetResource *resource, NSArray<PHAssetResource *> *resources) {
+    PHAssetResource *original = GSOriginalResourceFor(resource, resources);
+    NSString *originalName = original.originalFilename.lastPathComponent;
+    NSString *selectedName = resource.originalFilename.lastPathComponent;
+    if (!originalName.length)
+        return selectedName;
+    NSString *basename = originalName.stringByDeletingPathExtension;
+    NSString *originalExtension = originalName.pathExtension;
+    NSString *extension = originalExtension;
+    UTType *format = [UTType typeWithIdentifier:resource.uniformTypeIdentifier];
+    NSString *preferredExtension = format.preferredFilenameExtension;
+    if (preferredExtension.length &&
+        [preferredExtension caseInsensitiveCompare:originalExtension] != NSOrderedSame)
+        extension = preferredExtension;
+    if (!extension.length)
+        extension = selectedName.pathExtension;
+    return extension.length ? [basename stringByAppendingPathExtension:extension] : basename;
+}
 static NSArray<NSURL *> *GSWriteCurrentResources(PHAsset *asset, NSURL *directory,
                                                  NSError **error) {
     NSArray *resources = [PHAssetResource assetResourcesForAsset:asset];
@@ -70,9 +106,29 @@ static NSArray<NSURL *> *GSWriteCurrentResources(PHAsset *asset, NSURL *director
     }
     NSMutableArray *files = [NSMutableArray array];
     for (PHAssetResource *r in chosen) {
-        NSURL *url = [directory URLByAppendingPathComponent:r.originalFilename.lastPathComponent];
-        if ([NSFileManager.defaultManager fileExistsAtPath:url.path])
+        NSString *filename = GSExportFilename(r, resources);
+        if (!filename.length) {
+            if (error)
+                *error = [NSError errorWithDomain:@"Gunshot"
+                                             code:2
+                                         userInfo:@{
+                                             NSLocalizedDescriptionKey :
+                                                 GSL(@"Original media resources are unavailable.")
+                                         }];
             return nil;
+        }
+        NSURL *url = [directory URLByAppendingPathComponent:filename];
+        if ([NSFileManager.defaultManager fileExistsAtPath:url.path])
+        {
+            if (error)
+                *error = [NSError errorWithDomain:@"Gunshot"
+                                             code:3
+                                         userInfo:@{
+                                             NSLocalizedDescriptionKey :
+                                                 GSL(@"Duplicate media filename.")
+                                         }];
+            return nil;
+        }
         PHAssetResourceRequestOptions *options = [PHAssetResourceRequestOptions new];
         options.networkAccessAllowed = YES;
         dispatch_semaphore_t done = dispatch_semaphore_create(0);
