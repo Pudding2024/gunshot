@@ -271,11 +271,12 @@ int main(void) {
                     Resource(PHAssetResourceTypePhoto, @"IMG_0001.JPG", @"com.adobe.raw-image"),
                     Resource(PHAssetResourceTypeAlternatePhoto, @"IMG_0001.JPG", @"public.jpeg")
                 ],
-                PHAssetMediaTypeImage, NO, nil);
+                PHAssetMediaTypeImage, NO, @[ @"IMG_0001.JPG", @"IMG_0001.dng" ]);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypePhoto, nil, @"public.jpeg"),
-                    Resource(PHAssetResourceTypeFullSizePhoto, @"FullSizeRender.heic", @"public.heic")
+                    Resource(PHAssetResourceTypeFullSizePhoto, @"FullSizeRender.heic",
+                             @"public.heic")
                 ],
                 PHAssetMediaTypeImage, NO, @[ @"FullSizeRender.heic" ]);
             CheckRendition(
@@ -285,7 +286,7 @@ int main(void) {
                     Resource(PHAssetResourceTypeFullSizeVideo, @"edited.MOV",
                              @"com.apple.quicktime-movie")
                 ],
-                PHAssetMediaTypeVideo, NO, @[ @"edited.MOV" ]);
+                PHAssetMediaTypeVideo, NO, @[ @"original.MOV" ]);
         });
         assert(dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC)) ==
                0);
