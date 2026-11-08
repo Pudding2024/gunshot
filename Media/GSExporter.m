@@ -110,25 +110,24 @@ static NSArray<NSURL *> *GSWriteCurrentResources(PHAsset *asset, NSURL *director
         NSString *filename = GSExportFilename(r, resources);
         if (!filename.length) {
             if (error)
-                *error =
-                    [NSError errorWithDomain:@"Gunshot"
-                                         code:2
-                                     userInfo:@{
-                                         NSLocalizedDescriptionKey :
-                                             GSL(@"Original media resources are unavailable.")
-                                     }];
+                *error = [NSError
+                    errorWithDomain:@"Gunshot"
+                               code:2
+                           userInfo:@{
+                               NSLocalizedDescriptionKey :
+                                   GSL(@"Original media resources are unavailable.")
+                           }];
             return nil;
         }
         NSURL *url = [directory URLByAppendingPathComponent:filename];
         if ([NSFileManager.defaultManager fileExistsAtPath:url.path]) {
             if (error)
-                *error =
-                    [NSError errorWithDomain:@"Gunshot"
-                                         code:3
-                                     userInfo:@{
-                                         NSLocalizedDescriptionKey :
-                                             GSL(@"Duplicate media filename.")
-                                     }];
+                *error = [NSError
+                    errorWithDomain:@"Gunshot"
+                               code:3
+                           userInfo:@{
+                               NSLocalizedDescriptionKey : GSL(@"Duplicate media filename.")
+                           }];
             return nil;
         }
         PHAssetResourceRequestOptions *options = [PHAssetResourceRequestOptions new];

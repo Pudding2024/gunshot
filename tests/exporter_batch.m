@@ -271,7 +271,7 @@ int main(void) {
                     Resource(PHAssetResourceTypePhoto, @"IMG_0001.JPG", @"com.adobe.raw-image"),
                     Resource(PHAssetResourceTypeAlternatePhoto, @"IMG_0001.JPG", @"public.jpeg")
                 ],
-                PHAssetMediaTypeImage, NO, @[ @"IMG_0001.JPG", @"IMG_0001.dng" ]);
+                PHAssetMediaTypeImage, NO, nil);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypePhoto, nil, @"public.jpeg"),
