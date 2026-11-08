@@ -1,5 +1,6 @@
 #import "../Media/GSBatchImport.h"
 #import "../Media/GSExporter.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include <assert.h>
 #include <stdatomic.h>
 
@@ -266,12 +267,17 @@ int main(void) {
             CheckRendition(@[ jpeg, movie, editedMovie, edited ], PHAssetMediaTypeImage, YES,
                            @[ @"original.heic", @"original.MOV" ]);
             CheckRendition(@[ jpeg, movie, edited ], PHAssetMediaTypeImage, YES, nil);
+            NSString *rawExtension =
+                [UTType typeWithIdentifier:@"com.adobe.raw-image"].preferredFilenameExtension;
+            assert(rawExtension.length &&
+                   [rawExtension caseInsensitiveCompare:@"JPG"] != NSOrderedSame);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypePhoto, @"IMG_0001.JPG", @"com.adobe.raw-image"),
                     Resource(PHAssetResourceTypeAlternatePhoto, @"IMG_0001.JPG", @"public.jpeg")
                 ],
-                PHAssetMediaTypeImage, NO, @[ @"IMG_0001.JPG", @"IMG_0001.dng" ]);
+                PHAssetMediaTypeImage, NO,
+                @[ @"IMG_0001.JPG", [@"IMG_0001" stringByAppendingPathExtension:rawExtension] ]);
             CheckRendition(
                 @[
                     Resource(PHAssetResourceTypePhoto, nil, @"public.jpeg"),
